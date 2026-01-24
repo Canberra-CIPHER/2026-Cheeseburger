@@ -13,55 +13,40 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler
  * this project, you must also update the Main.java file in the project.
  */
 class Robot : TimedRobot() {
-    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
-    private val m_robotContainer: RobotContainer = RobotContainer()
+    private val robotContainer: RobotContainer = RobotContainer()
 
-    /**
-     * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
-     * that you want ran during disabled, autonomous, teleoperated and test.
-     *
-     *
-     * This runs after the mode specific periodic functions, but before LiveWindow and
-     * SmartDashboard integrated updating.
-     */
-    override fun robotPeriodic() {
-        // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-        // commands, running already-scheduled commands, removing finished or interrupted commands,
-        // and running subsystem periodic() methods.  This must be called from the robot's periodic
-        // block in order for anything in the Command-based framework to work.
-        CommandScheduler.getInstance().run()
+    override fun robotInit() {
+        CommandScheduler.getInstance().registerSubsystem(robotContainer.turret)
+
+        addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
     }
 
-    /** This function is called once each time the robot enters Disabled mode.  */
+    override fun robotPeriodic() {
+        CommandScheduler.getInstance().run()
+        robotContainer.loop.poll()
+        robotContainer.turret.periodic()
+    }
+
     override fun disabledInit() {}
 
     override fun disabledPeriodic() {}
 
-    /** This autonomous runs the autonomous command selected by your [RobotContainer] class.  */
     override fun autonomousInit() {
     }
 
-    /** This function is called periodically during autonomous.  */
     override fun autonomousPeriodic() {}
 
-    override fun teleopInit() {
-    }
+    override fun teleopInit() {}
 
-    /** This function is called periodically during operator control.  */
     override fun teleopPeriodic() {}
 
     override fun testInit() {
-        // Cancels all running commands at the start of test mode.
         CommandScheduler.getInstance().cancelAll()
     }
 
-    /** This function is called periodically during test mode.  */
     override fun testPeriodic() {}
 
-    /** This function is called once when the robot is first started up.  */
     override fun simulationInit() {}
 
-    /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {}
 }

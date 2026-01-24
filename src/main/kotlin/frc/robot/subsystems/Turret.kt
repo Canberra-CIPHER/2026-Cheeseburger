@@ -1,102 +1,103 @@
 package frc.robot.subsystems
 
-import com.ctre.phoenix6.hardware.TalonFX
+import edu.wpi.first.math.controller.ElevatorFeedforward
+import edu.wpi.first.math.controller.PIDController
+import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.units.Units
-import edu.wpi.first.units.measure.Angle
-import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.math.util.Units
+import edu.wpi.first.networktables.NetworkTableInstance
+import edu.wpi.first.wpilibj.simulation.ElevatorSim
+import edu.wpi.first.wpilibj.smartdashboard.*
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.FunctionalCommand
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import yams.gearing.GearBox
-import yams.gearing.MechanismGearing
-import yams.mechanisms.config.PivotConfig
-import yams.mechanisms.positional.Pivot
-import yams.motorcontrollers.SmartMotorController
-import yams.motorcontrollers.SmartMotorControllerConfig
-import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode
-import yams.motorcontrollers.remote.TalonFXWrapper
-import java.util.function.Supplier
+import frc.robot.subsystems.io.TurretIO
 
 
-class TurretSubsystem : SubsystemBase() {
-    private val turretMotor = TalonFX(20)
-    private val motorConfig: SmartMotorControllerConfig? = SmartMotorControllerConfig(this)
-        .withControlMode(SmartMotorControllerConfig.ControlMode.CLOSED_LOOP)
-        .withClosedLoopController(
-            72.0,
-            0.0,
-            0.0,
-            Units.DegreesPerSecond.of(720.0),
-            Units.DegreesPerSecondPerSecond.of(1440.0)
-        )
-        .withGearing(MechanismGearing(GearBox.fromReductionStages(3.0, 5.0, 76.0 / 12.0)))
-        .withIdleMode(MotorMode.BRAKE)
-        .withMotorInverted(false)
-        .withTelemetry("TurretMotor", SmartMotorControllerConfig.TelemetryVerbosity.HIGH) // Power Optimization
-        .withStatorCurrentLimit(Units.Amps.of(25.0))
-        .withClosedLoopRampRate(Units.Seconds.of(0.0))
-        .withOpenLoopRampRate(Units.Seconds.of(0.0))
+class TurretSubsystem(
+    val io: TurretIO,
+    var pid: ProfiledPIDController,
+//    var feedforward: ElevatorFeedforward,
+//    var motor: DCMotor,
+//    var turretModel: MechanismLigament2d,
+) :  SubsystemBase() {
+    sealed class TurretState {
+        class EStop() : TurretState()
+        class HoldingAngle(val angle: Double) : TurretState()
+        class Init() : TurretState()
+    }
 
-    private val turretSMC: SmartMotorController = TalonFXWrapper(
-        turretMotor,
-        DCMotor.getKrakenX60(1),
-        motorConfig
-    )
+    val turretErrorPublisher = NetworkTableInstance.getDefault().getTopic("turret/error").genericPublish("double")
+    val turretPositionPublisher = NetworkTableInstance.getDefault().getTopic("turret/position").genericPublish("double")
+    val turretVoltagePublisher = NetworkTableInstance.getDefault().getTopic("turret/voltage").genericPublish("double")
+    val turretCurrentPublisher = NetworkTableInstance.getDefault().getTopic("turret/current").genericPublish("double")
 
-    private val turretConfig: PivotConfig = PivotConfig(turretSMC)
-        .withStartingPosition(Units.Degrees.of(0.0))
-        .withWrapping(Units.Degrees.of(-180.0), Units.Degrees.of(180.0))
-        .withSoftLimits(Units.Degrees.of(-200.0), Units.Degrees.of(200.0))
-        .withHardLimit(Units.Degrees.of(-200.0), Units.Degrees.of(200.0))
-        .withTelemetry("TurretMech", SmartMotorControllerConfig.TelemetryVerbosity.HIGH) // Telemetry
-        .withMOI(Units.Meters.of(0.25), Units.Kilograms.of(2.5))
+    var state: TurretState = TurretState.Init()
 
-    private val turret = Pivot(turretConfig)
+    fun estop() {
+        this.state = TurretState.EStop()
+    }
 
-    fun transformAngle(angle: Angle): Angle {
-        var a = angle
-        if (a.gt(Units.Degrees.of(180.0))) {
-            a -= Units.Degrees.of(360.0)
+    fun goToAngle(angle: Double) {
+        this.state = TurretState.HoldingAngle(angle)
+    }
+
+    fun isStable(): Boolean {
+        return this.pid.atSetpoint()
+    }
+
+    fun getCurrentAngle(): Double {
+        return io.positionProvider.getPosition() * 360.0
+    }
+
+    fun controlPeriodic() {
+        var currentAngle = getCurrentAngle()
+        var voltage = 0.0
+
+        when(val state = this.state) {
+            is TurretState.EStop -> voltage = (0.0)
+            is TurretState.HoldingAngle -> {
+                var output = pid.calculate(currentAngle, state.angle)
+                voltage = output
+            }
+            is TurretState.Init -> {
+
+            }
         }
-        return a
-    }
 
-    fun setAngle(angle: Angle): Command {
-        return turret.setAngle(transformAngle(angle))
-    }
-
-    fun setAngleDirect(angle: Angle) {
-        turretSMC.setPosition(transformAngle(angle))
-    }
-
-    fun setAngle(angleSupplier: Supplier<Angle>): Command {
-        return turret.setAngle { -> transformAngle(angleSupplier.get()) }
-    }
-
-    val angle: Angle
-        get() = turret.angle
-
-    fun sysId(): Command? {
-        return turret.sysId(
-            Units.Volts.of(4.0),  // maximumVoltage
-            Units.Volts.per(Units.Second).of(0.5),  // step
-            Units.Seconds.of(8.0) // duration
-        )
-    }
-
-    fun setDutyCycle(dutyCycleSupplier: Supplier<Double?>?): Command? {
-        return turret.set(dutyCycleSupplier)
-    }
-
-    fun setDutyCycle(dutyCycle: Double): Command? {
-        return turret.set(dutyCycle)
+        io.voltageController.setVoltage(voltage)
     }
 
     override fun periodic() {
-        turret.updateTelemetry()
+        turretErrorPublisher.setDouble(pid.positionError)
+        turretPositionPublisher.setDouble(getCurrentAngle())
+        turretVoltagePublisher.setDouble(io.voltageController.getVoltage())
+        turretCurrentPublisher.setDouble(io.voltageController.getCurrent())
     }
 
-    override fun simulationPeriodic() {
-        turret.simIterate()
+    fun goToAngleCommand(angle: Double, continuous: Boolean): Command {
+        return FunctionalCommand(
+            { -> this.goToAngle(angle) },
+            { -> Unit },
+            { _ -> Unit },
+            { -> !continuous && this.isStable() },
+            this
+        )
     }
+
+ //   val sim = TurretSim(feedforward.kv, feedforward.ka, motor, minAngle, maxAngle, true, 0.0)
+
+    /*override fun simulationPeriodic() {
+        if (io.voltageController is WrappedSparkMax) {
+            var simMotor = io.voltageController.sim
+            simMotor?.iterate(sim.velocityMetersPerSecond, 12.0, 0.02)
+        }
+
+        println("Sim Periodic " + io.voltageController.getVoltage())
+
+        sim.setInputVoltage(io.voltageController.getVoltage())
+        sim.update(0.02)
+
+        turretModel.length = sim.positionMeters
+    }*/
 }
