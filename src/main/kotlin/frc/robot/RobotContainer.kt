@@ -7,13 +7,17 @@ import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
 import com.ctre.phoenix6.signals.InvertedValue
 import edu.wpi.first.math.controller.ProfiledPIDController
+import edu.wpi.first.math.filter.LinearFilter
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import edu.wpi.first.units.Units
+import edu.wpi.first.wpilibj.AddressableLED
+import edu.wpi.first.wpilibj.AddressableLEDBuffer
 import edu.wpi.first.wpilibj.DutyCycleEncoder
 import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.robot.sensorfusion.CRTFusion
+import frc.robot.subsystems.Lights
 import frc.robot.subsystems.TurretSubsystem
 import frc.robot.subsystems.io.TurretIO
 import frc.robot.wrappers.AbsEncoderWrapper
@@ -47,9 +51,11 @@ class RobotContainer {
     val turretEncoder2 = AbsEncoderWrapper(DutyCycleEncoder(1, 1.0, 0.0))
     val turretFusionEncoder = CRTFusion(turretEncoder1, 12, turretEncoder2, 13, 76, 0.0)
 
-    val turretIO = TurretIO(turretMotorWrapped, turretFusionEncoder)
+    val turretFusionFilter = LinearFilter.movingAverage(10)
 
-    val turretPID = ProfiledPIDController(20.0, 0.0, 0.0, TrapezoidProfile.Constraints(360.0, 720.0))
+    val turretIO = TurretIO(turretMotorWrapped, turretMotorWrapped)
+
+    val turretPID = ProfiledPIDController(0.8, 0.0, 0.0, TrapezoidProfile.Constraints(360.0, 720.0))
 
     val turret = TurretSubsystem(turretIO, turretPID)
     val controller = CommandXboxController(Constants.OperatorConstants.DRIVER_CONTROLLER_PORT)
@@ -66,4 +72,8 @@ class RobotContainer {
     init {
         configureBindings()
     }
+
+    val ledStrip = AddressableLED(8)
+    val ledStripBuffer = AddressableLEDBuffer(240)
+    val lights = Lights(ledStrip, 240, ledStripBuffer)
 }

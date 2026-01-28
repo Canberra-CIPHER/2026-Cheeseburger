@@ -1,11 +1,6 @@
 package frc.robot.wrappers
 
 import com.ctre.phoenix6.hardware.TalonFX
-import com.revrobotics.sim.SparkMaxSim
-import com.revrobotics.spark.SparkMax
-import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.units.AngleUnit
-import edu.wpi.first.wpilibj.RobotBase
 
 class WrappedTalonFX(val talon: TalonFX, val ratio: Double) : VoltageController, PositionProvider {
     override fun setVoltage(voltage: Double) {

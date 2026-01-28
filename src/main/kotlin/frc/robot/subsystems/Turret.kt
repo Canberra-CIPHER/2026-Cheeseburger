@@ -17,7 +17,7 @@ import frc.robot.subsystems.io.TurretIO
 class TurretSubsystem(
     val io: TurretIO,
     var pid: ProfiledPIDController,
-//    var feedforward: ElevatorFeedforward,
+//    var feedforward: TurretFeedforward,
 //    var motor: DCMotor,
 //    var turretModel: MechanismLigament2d,
 ) :  SubsystemBase() {
