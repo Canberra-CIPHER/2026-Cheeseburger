@@ -17,8 +17,10 @@ class Robot : TimedRobot() {
     var movingAverageGuess = 0.0
 
     override fun robotInit() {
+        CommandScheduler.getInstance().registerSubsystem(robotContainer.swerveDriveSystem)
         CommandScheduler.getInstance().registerSubsystem(robotContainer.turret)
 
+        addPeriodic({ -> robotContainer.swerveDriveSystem.controlPeriodic() }, 0.01)
         addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
     }
 

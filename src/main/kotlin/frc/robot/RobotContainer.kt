@@ -8,23 +8,52 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
 import com.ctre.phoenix6.signals.InvertedValue
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.filter.LinearFilter
+import edu.wpi.first.math.geometry.Rotation3d
+import edu.wpi.first.math.geometry.Transform3d
+import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import edu.wpi.first.units.Units
 import edu.wpi.first.wpilibj.AddressableLED
 import edu.wpi.first.wpilibj.AddressableLEDBuffer
 import edu.wpi.first.wpilibj.DutyCycleEncoder
+import edu.wpi.first.wpilibj.Filesystem
+import edu.wpi.first.wpilibj.XboxController
 import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.robot.sensorfusion.CRTFusion
 import frc.robot.subsystems.Lights
+import frc.robot.subsystems.SwerveDrive
 import frc.robot.subsystems.TurretSubsystem
+import frc.robot.subsystems.io.SwerveDriveIO
 import frc.robot.subsystems.io.TurretIO
 import frc.robot.wrappers.AbsEncoderWrapper
 import frc.robot.wrappers.WrappedTalonFX
+import swervelib.parser.SwerveParser
+import swervelib.telemetry.SwerveDriveTelemetry
+import java.io.File
 
 class RobotContainer {
     val loop = EventLoop()
+
+    val xbox = XboxController(0)
+
+    val swerveJsonDirectory = File(Filesystem.getDeployDirectory(), "swerve")
+    val swerveDrive = SwerveParser(swerveJsonDirectory).createSwerveDrive(17.0)
+
+    val driveXPID = ProfiledPIDController(5.0, 0.0, 0.0, TrapezoidProfile.Constraints(1.0, 30.0))
+    val driveYPID = ProfiledPIDController(5.0, 0.0, 0.0, TrapezoidProfile.Constraints(1.0, 30.0))
+
+    val swerveDriveIO = SwerveDriveIO(swerveDrive)
+    val robotOriginToCameraTransform = Transform3d(
+        Translation3d(0.0, 0.0, 0.0),
+        Rotation3d(0.0, 0.0, 0.0)
+    )
+    val swerveDriveSystem = SwerveDrive(swerveDriveIO, driveXPID, driveYPID /*, vision, robotOriginToCameraTransform */)
+
+    init {
+        SwerveDriveTelemetry.verbosity = SwerveDriveTelemetry.TelemetryVerbosity.HIGH
+    }
 
     val turretMotor = TalonFX(20)
 
@@ -58,22 +87,23 @@ class RobotContainer {
     val turretPID = ProfiledPIDController(0.8, 0.0, 0.0, TrapezoidProfile.Constraints(360.0, 720.0))
 
     val turret = TurretSubsystem(turretIO, turretPID)
-    val controller = CommandXboxController(Constants.OperatorConstants.DRIVER_CONTROLLER_PORT)
+//    val controller = CommandXboxController(Constants.OperatorConstants.DRIVER_CONTROLLER_PORT)
 
     private fun configureBindings() {
         val angles = listOf(0, 45, 90, 135, 180, 225, 270, 315)
 
         for (angle in angles) {
-            controller.pov(angle).onTrue(turret.goToAngleCommand(angle.toDouble(), false))
+            xbox.pov(angle, loop).ifHigh { turret.goToAngleCommand(angle.toDouble(), false) }
         }
 //        controller.rightBumper().whileTrue(turret.runTurret()).whileFalse(turret.stopTurret())
     }
 
-    init {
-        configureBindings()
-    }
 
     val ledStrip = AddressableLED(8)
     val ledStripBuffer = AddressableLEDBuffer(240)
     val lights = Lights(ledStrip, 240, ledStripBuffer)
+
+    init {
+        configureBindings()
+    }
 }
