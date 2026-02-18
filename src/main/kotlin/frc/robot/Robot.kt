@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.robot.subsystems.Lights
+import kotlin.math.sign
 
 class Robot : TimedRobot() {
     private val robotContainer: RobotContainer = RobotContainer()
@@ -28,6 +29,7 @@ class Robot : TimedRobot() {
         CommandScheduler.getInstance().run()
         robotContainer.loop.poll()
         robotContainer.turret.periodic()
+        robotContainer.swerveDriveSystem.periodic()
 
         movingAverageGuess = robotContainer.turretFusionFilter.calculate(robotContainer.turretFusionEncoder.getPosition())
         turretFusionPublisher.setDouble(movingAverageGuess)
@@ -40,16 +42,62 @@ class Robot : TimedRobot() {
     override fun disabledPeriodic() {}
 
     override fun autonomousInit() {
-        robotContainer.turretMotorWrapped.setPosition(movingAverageGuess)
+    //    robotContainer.turretMotorWrapped.setPosition(movingAverageGuess)
     }
 
     override fun autonomousPeriodic() {}
 
-    override fun teleopInit() {
-//        robotContainer.turretMotorWrapped.setPosition(robotContainer.turretFusionEncoder.getPosition() % 1.0)
+    fun squareInputs(input: Double): Double {
+        return input.sign * input * input
     }
 
-    override fun teleopPeriodic() {}
+    fun getThrottleMultiplier(): Double {
+        if (robotContainer.xbox.rightBumperButton) {
+            return 0.35
+        }
+        else {
+            return 0.5
+        }
+    }
+
+    override fun teleopInit() {
+        // autonomousCommand?.cancel()
+
+        val snapFun = { ->
+            var snapX: Double? = null
+            var snapY: Double? = null
+
+            if (robotContainer.xbox.xButton) {
+                snapX = 0.0
+                snapY = -1.0
+            }
+            else if (robotContainer.xbox.aButton) {
+                snapX = -1.0
+                snapY = 0.0
+            }
+            else if (robotContainer.xbox.bButton) {
+                snapX = 0.0
+                snapY = 1.0
+            }
+            else if (robotContainer.xbox.yButton) {
+                snapX = 1.0
+                snapY = 0.0
+            }
+
+            Pair(snapX, snapY)
+        }
+//        robotContainer.turretMotorWrapped.setPosition(robotContainer.turretFusionEncoder.getPosition() % 1.0)
+        CommandScheduler.getInstance().setDefaultCommand(robotContainer.swerveDriveSystem, robotContainer.swerveDriveSystem.driveDefaultCommand(
+            { -> squareInputs(-robotContainer.xbox.leftY) * getThrottleMultiplier() },
+            { -> squareInputs(-robotContainer.xbox.leftX) * getThrottleMultiplier() },
+            { -> snapFun.invoke().first ?: -robotContainer.xbox.rightX },
+            { -> snapFun.invoke().second ?: -robotContainer.xbox.rightY },
+        ))
+    }
+
+    override fun teleopPeriodic() {
+        robotContainer.intakeMotor.set(robotContainer.xbox.leftTriggerAxis)
+    }
 
     override fun testInit() {
         CommandScheduler.getInstance().cancelAll()

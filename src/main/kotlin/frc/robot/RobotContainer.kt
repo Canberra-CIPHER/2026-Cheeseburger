@@ -6,6 +6,9 @@ import com.ctre.phoenix6.configs.MotorOutputConfigs
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
 import com.ctre.phoenix6.signals.InvertedValue
+import com.revrobotics.spark.SparkLowLevel
+import com.revrobotics.spark.SparkMax
+import com.thethriftybot.devices.ThriftyNova
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.filter.LinearFilter
 import edu.wpi.first.math.geometry.Rotation3d
@@ -37,6 +40,9 @@ class RobotContainer {
     val loop = EventLoop()
 
     val xbox = XboxController(0)
+
+//    val intakeMotor = SparkMax(30, SparkLowLevel.MotorType.kBrushless)
+    val intakeMotor = ThriftyNova(30)
 
     val swerveJsonDirectory = File(Filesystem.getDeployDirectory(), "swerve")
     val swerveDrive = SwerveParser(swerveJsonDirectory).createSwerveDrive(17.0)
