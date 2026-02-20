@@ -93,6 +93,10 @@ class Robot : TimedRobot() {
             { -> snapFun.invoke().first ?: -robotContainer.xbox.rightX },
             { -> snapFun.invoke().second ?: -robotContainer.xbox.rightY },
         ))
+
+        CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
+            {-> if (robotContainer.xbox.leftBumperButton) 90.0 else if (robotContainer.xbox.rightBumperButton) -15.0 else 0.0 }
+        ))
     }
 
     override fun teleopPeriodic() {

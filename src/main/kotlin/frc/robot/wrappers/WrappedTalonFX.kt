@@ -2,7 +2,7 @@ package frc.robot.wrappers
 
 import com.ctre.phoenix6.hardware.TalonFX
 
-class WrappedTalonFX(val talon: TalonFX, val ratio: Double) : VoltageController, PositionProvider {
+class WrappedTalonFX(val talon: TalonFX, val ratio: Double) : VoltageController, PositionProvider, VelocityProvider {
     override fun setVoltage(voltage: Double) {
         talon.setVoltage(voltage)
     }
@@ -21,5 +21,9 @@ class WrappedTalonFX(val talon: TalonFX, val ratio: Double) : VoltageController,
 
     override fun getCurrent(): Double {
         return talon.supplyCurrent.valueAsDouble
+    }
+
+    override fun getVelocity(): Double {
+        return talon.velocity.valueAsDouble / ratio
     }
 }
