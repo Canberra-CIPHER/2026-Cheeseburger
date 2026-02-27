@@ -12,6 +12,7 @@ import com.thethriftybot.devices.ThriftyNova
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
 import edu.wpi.first.math.filter.LinearFilter
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.geometry.Translation3d
@@ -21,6 +22,7 @@ import edu.wpi.first.wpilibj.AddressableLED
 import edu.wpi.first.wpilibj.AddressableLEDBuffer
 import edu.wpi.first.wpilibj.DutyCycleEncoder
 import edu.wpi.first.wpilibj.Filesystem
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.XboxController
 import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj2.command.Command
@@ -34,6 +36,7 @@ import frc.robot.subsystems.io.SwerveDriveIO
 import frc.robot.subsystems.io.TurretIO
 import frc.robot.wrappers.AbsEncoderWrapper
 import frc.robot.wrappers.WrappedTalonFX
+import org.photonvision.PhotonCamera
 import swervelib.parser.SwerveParser
 import swervelib.telemetry.SwerveDriveTelemetry
 import java.io.File
@@ -44,7 +47,12 @@ class RobotContainer {
     val xbox = XboxController(0)
 
 //    val intakeMotor = SparkMax(30, SparkLowLevel.MotorType.kBrushless)
-    val intakeMotor = ThriftyNova(30)
+//    val intakeMotor = ThriftyNova(30)
+    var intakeMotor: ThriftyNova? = null;
+
+    fun initMotor() {
+        intakeMotor = ThriftyNova(30)
+    }
 
     val swerveJsonDirectory = File(Filesystem.getDeployDirectory(), "swerve")
     val swerveDrive = SwerveParser(swerveJsonDirectory).createSwerveDrive(17.0)
@@ -133,10 +141,15 @@ class RobotContainer {
         }
     }
 
-
     val ledStrip = AddressableLED(8)
     val ledStripBuffer = AddressableLEDBuffer(240)
     val lights = Lights(ledStrip, 240, ledStripBuffer)
+
+    val camera = PhotonCamera("realsense")
+
+    fun addVisionReading(pose: Pose2d) {
+        swerveDrive.addVisionMeasurement(pose, Timer.getFPGATimestamp())
+    }
 
     init {
         configureBindings()

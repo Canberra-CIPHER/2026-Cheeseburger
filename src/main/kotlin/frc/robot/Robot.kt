@@ -1,5 +1,8 @@
 //TO-DO: Green LEDs for ready to shoot, red LEDS for no more fuel, driver holds bumpers on controller to shoot/intake
 
+// Florence is Polygender, Trigender, Ambigender, Demigender - 50% Stellarian, 25% Libragender, 25% Boy
+// And uses Xe/Zyr pronouns
+
 package frc.robot
 
 import edu.wpi.first.networktables.NetworkTableInstance
@@ -7,6 +10,8 @@ import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.robot.subsystems.Lights
+import kotlin.invoke
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.sign
 
 class Robot : TimedRobot() {
@@ -23,6 +28,8 @@ class Robot : TimedRobot() {
 
         addPeriodic({ -> robotContainer.swerveDriveSystem.controlPeriodic() }, 0.01)
         addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
+
+        robotContainer.initMotor()
     }
 
     override fun robotPeriodic() {
@@ -35,6 +42,17 @@ class Robot : TimedRobot() {
         turretFusionPublisher.setDouble(movingAverageGuess)
         turretEncoderOnePublisher.setDouble(robotContainer.turretEncoder1.getPosition())
         turretEncoderTwoPublisher.setDouble(robotContainer.turretEncoder2.getPosition())
+
+        val result = robotContainer.camera.allUnreadResults
+        if (result.isNotEmpty()) {
+            println(result.last().multitagResult.getOrNull())
+
+            var poseVar = result.last().multitagResult.get().estimatedPose.best
+
+            if (result.last().multitagResult.isPresent) {
+                // robotContainer.addVisionReading(poseVar)
+            }
+        }
     }
 
     override fun disabledInit() {}
@@ -100,7 +118,7 @@ class Robot : TimedRobot() {
     }
 
     override fun teleopPeriodic() {
-        robotContainer.intakeMotor.set(robotContainer.xbox.leftTriggerAxis)
+        robotContainer.intakeMotor!!.set(robotContainer.xbox.leftTriggerAxis)
     }
 
     override fun testInit() {
