@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.FunctionalCommand
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.subsystems.io.TurretIO
 import java.util.function.DoubleSupplier
+import javax.print.attribute.standard.Destination
 
 
 class TurretSubsystem(
@@ -48,6 +49,9 @@ class TurretSubsystem(
 
     var state: TurretState = TurretState.Init()
     var shootState: ShootingState = ShootingState.Neutral()
+
+    var angleToTarget = 0.0
+    var distanceToTarget = 0.0
 
     fun estop() {
         this.state = TurretState.EStop()
@@ -132,6 +136,16 @@ class TurretSubsystem(
             { -> Unit },
             { -> runTurret(speed.asDouble) },
             { _: Boolean -> runTurret(0.0)},
+            { -> false },
+            this
+        )
+    }
+
+    fun trackTargetCommand(): Command {
+        return FunctionalCommand(
+            { -> Unit },
+            { -> this.goToAngle(this.angleToTarget) },
+            { _: Boolean -> false},
             { -> false },
             this
         )

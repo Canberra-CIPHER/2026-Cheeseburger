@@ -9,6 +9,8 @@ import com.ctre.phoenix6.signals.InvertedValue
 import com.revrobotics.spark.SparkLowLevel
 import com.revrobotics.spark.SparkMax
 import com.thethriftybot.devices.ThriftyNova
+import edu.wpi.first.apriltag.AprilTagFieldLayout
+import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
 import edu.wpi.first.math.filter.LinearFilter
@@ -45,6 +47,7 @@ class RobotContainer {
     val loop = EventLoop()
 
     val xbox = XboxController(0)
+    val xbox2 = XboxController(1)
 
 //    val intakeMotor = SparkMax(30, SparkLowLevel.MotorType.kBrushless)
 //    val intakeMotor = ThriftyNova(30)
@@ -139,6 +142,10 @@ class RobotContainer {
                 CommandScheduler.getInstance().schedule(turret.goToAngleCommand(angle.toDouble(), false))
             }
         }
+
+        if (xbox2.aButton) {
+            CommandScheduler.getInstance().schedule(turret.trackTargetCommand())
+        }
     }
 
     val ledStrip = AddressableLED(8)
@@ -150,6 +157,8 @@ class RobotContainer {
     fun addVisionReading(pose: Pose2d) {
         swerveDrive.addVisionMeasurement(pose, Timer.getFPGATimestamp())
     }
+
+    val whereTagsAre = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)
 
     init {
         configureBindings()

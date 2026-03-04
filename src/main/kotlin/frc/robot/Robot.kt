@@ -5,6 +5,11 @@
 
 package frc.robot
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout
+import edu.wpi.first.apriltag.AprilTagFields
+import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
@@ -21,6 +26,8 @@ class Robot : TimedRobot() {
     val turretEncoderOnePublisher = NetworkTableInstance.getDefault().getTopic("turret/encoder1").genericPublish("double")
     val turretEncoderTwoPublisher = NetworkTableInstance.getDefault().getTopic("turret/encoder2").genericPublish("double")
     var movingAverageGuess = 0.0
+
+    var lastSeenHubID: Int? = null
 
     override fun robotInit() {
         CommandScheduler.getInstance().registerSubsystem(robotContainer.swerveDriveSystem)
@@ -45,13 +52,33 @@ class Robot : TimedRobot() {
 
         val result = robotContainer.camera.allUnreadResults
         if (result.isNotEmpty()) {
-            println(result.last().multitagResult.getOrNull())
+            var last = result.last()
 
-            var poseVar = result.last().multitagResult.get().estimatedPose.best
+            var poseVar = last.multitagResult.get().estimatedPose.best
 
-            if (result.last().multitagResult.isPresent) {
-                // robotContainer.addVisionReading(poseVar)
+            if (last.multitagResult.isPresent) {
+                 robotContainer.swerveDrive.addVisionMeasurement(Pose2d(Translation2d(poseVar.translation.x, poseVar.translation.y), Rotation2d(poseVar.rotation.x, poseVar.rotation.y)), result.last().timestampSeconds)
             }
+
+            for (target in last.targets) {
+                if ((target.fiducialId == 9) or (target.fiducialId == 10)) {
+                    this.lastSeenHubID = 10
+                }
+                if ((target.fiducialId == 25) or (target.fiducialId == 26)) {
+                    this.lastSeenHubID = 25
+                }
+            }
+        }
+
+        lastSeenHubID?.let {
+            var targetPose = robotContainer.whereTagsAre.getTagPose(it).get()
+            var targetPose2D = Pose2d(Translation2d(targetPose.translation.x, targetPose.translation.y), Rotation2d(targetPose.rotation.x, targetPose.rotation.y))
+            var relativePosition = targetPose2D.minus(robotContainer.swerveDrive.pose)
+            var relativeAngle = relativePosition.rotation.degrees
+            var relativeDistance = relativePosition.translation.norm
+
+            robotContainer.turret.angleToTarget = relativeAngle
+            robotContainer.turret.distanceToTarget = relativeDistance
         }
     }
 
