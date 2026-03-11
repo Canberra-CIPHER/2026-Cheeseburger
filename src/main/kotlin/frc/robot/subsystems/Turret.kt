@@ -106,7 +106,8 @@ class TurretSubsystem(
             }
         }
 
-        io.voltageControllerShoot.setVoltage(voltage)
+        io.voltageControllerShoot1.setVoltage(voltage)
+        io.voltageControllerShoot2.setVoltage(voltage)
     }
 
     override fun periodic() {

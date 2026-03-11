@@ -31,7 +31,9 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.robot.sensorfusion.CRTFusion
+import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
+import frc.robot.subsystems.Outtake
 import frc.robot.subsystems.SwerveDrive
 import frc.robot.subsystems.TurretSubsystem
 import frc.robot.subsystems.io.SwerveDriveIO
@@ -51,11 +53,12 @@ class RobotContainer {
 
 //    val intakeMotor = SparkMax(30, SparkLowLevel.MotorType.kBrushless)
 //    val intakeMotor = ThriftyNova(30)
-    var intakeMotor: ThriftyNova? = null;
+    var intakeMotor = ThriftyNova(30)
+    var outtakeMotor1 = SparkMax(40, SparkLowLevel.MotorType.kBrushless)
+    var outtakeMotor2 = SparkMax(41, SparkLowLevel.MotorType.kBrushless)
 
-    fun initMotor() {
-        intakeMotor = ThriftyNova(30)
-    }
+    var intake: Intake = Intake(intakeMotor)
+    var outtake: Outtake = Outtake(outtakeMotor1, outtakeMotor2)
 
     val swerveJsonDirectory = File(Filesystem.getDeployDirectory(), "swerve")
     val swerveDrive = SwerveParser(swerveJsonDirectory).createSwerveDrive(17.0)
@@ -97,6 +100,7 @@ class RobotContainer {
     val turretSpinMotorWrapped = WrappedTalonFX(turretSpinMotor, 3.0 * 5.0 * (76.0 / 12.0))
 
     val turretShootMotor = TalonFX(21)
+    val turretShootMotor2 = TalonFX(22)
 
     init {
         val outputConfig = MotorOutputConfigs()
@@ -116,7 +120,26 @@ class RobotContainer {
         turretShootMotor.configurator.apply(encoderConfig)
     }
 
+    init {
+        val outputConfig = MotorOutputConfigs()
+        outputConfig.Inverted = InvertedValue.Clockwise_Positive
+        turretShootMotor2.configurator.apply(outputConfig)
+
+        val currentLimitConfig = CurrentLimitsConfigs()
+        currentLimitConfig.StatorCurrentLimit = 80.0
+        currentLimitConfig.StatorCurrentLimitEnable = true
+        currentLimitConfig.SupplyCurrentLimit = 30.0
+        currentLimitConfig.SupplyCurrentLimitEnable = true
+        turretShootMotor2.configurator.apply(currentLimitConfig)
+
+        val encoderConfig = FeedbackConfigs()
+        encoderConfig.SensorToMechanismRatio = 1.0
+        encoderConfig.FeedbackSensorSource = FeedbackSensorSourceValue.RotorSensor
+        turretShootMotor2.configurator.apply(encoderConfig)
+    }
+
     val turretShootMotorWrapped = WrappedTalonFX(turretShootMotor, 1.0)
+    val turretShootMotor2Wrapped = WrappedTalonFX(turretShootMotor2, 1.0)
 
     val turretEncoder1 = AbsEncoderWrapper(DutyCycleEncoder(0, 1.0, 0.0))
     val turretEncoder2 = AbsEncoderWrapper(DutyCycleEncoder(1, 1.0, 0.0))
@@ -124,7 +147,7 @@ class RobotContainer {
 
     val turretFusionFilter = LinearFilter.movingAverage(10)
 
-    val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretSpinMotorWrapped, turretShootMotorWrapped)
+    val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretShootMotor2Wrapped, turretSpinMotorWrapped, turretShootMotorWrapped)
 
     val turretPID = ProfiledPIDController(0.8, 0.0, 0.0, TrapezoidProfile.Constraints(360.0, 720.0))
     val shootingPID = ProfiledPIDController(12.0 / 100.0, 0.0, 0.0, TrapezoidProfile.Constraints(100.0, 720.0))
@@ -143,7 +166,7 @@ class RobotContainer {
             }
         }
 
-        if (xbox2.aButton) {
+        if (xbox2.aButton or xbox2.bButton or xbox2.xButton or xbox2.yButton) {
             CommandScheduler.getInstance().schedule(turret.trackTargetCommand())
         }
     }

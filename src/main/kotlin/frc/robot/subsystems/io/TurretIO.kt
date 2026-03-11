@@ -6,7 +6,8 @@ import frc.robot.wrappers.VoltageController
 
 data class TurretIO(
     val voltageControllerSpin: VoltageController,
-    val voltageControllerShoot: VoltageController,
+    val voltageControllerShoot1: VoltageController,
+    val voltageControllerShoot2: VoltageController,
     val positionProvider: PositionProvider,
     val velocityProvider: VelocityProvider
 )

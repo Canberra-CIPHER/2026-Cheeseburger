@@ -14,7 +14,9 @@ import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
+import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
+import frc.robot.subsystems.Outtake
 import kotlin.invoke
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.sign
@@ -32,11 +34,13 @@ class Robot : TimedRobot() {
     override fun robotInit() {
         CommandScheduler.getInstance().registerSubsystem(robotContainer.swerveDriveSystem)
         CommandScheduler.getInstance().registerSubsystem(robotContainer.turret)
+        CommandScheduler.getInstance().registerSubsystem(robotContainer.intake)
+        CommandScheduler.getInstance().registerSubsystem(robotContainer.outtake)
 
         addPeriodic({ -> robotContainer.swerveDriveSystem.controlPeriodic() }, 0.01)
         addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
-
-        robotContainer.initMotor()
+        addPeriodic({ -> robotContainer.intake.controlPeriodic()}, 0.01)
+        addPeriodic({ -> robotContainer.outtake.controlPeriodic()}, 0.01)
     }
 
     override fun robotPeriodic() {
@@ -44,6 +48,8 @@ class Robot : TimedRobot() {
         robotContainer.loop.poll()
         robotContainer.turret.periodic()
         robotContainer.swerveDriveSystem.periodic()
+        robotContainer.intake.periodic()
+        robotContainer.outtake.periodic()
 
         movingAverageGuess = robotContainer.turretFusionFilter.calculate(robotContainer.turretFusionEncoder.getPosition())
         turretFusionPublisher.setDouble(movingAverageGuess)
@@ -140,12 +146,17 @@ class Robot : TimedRobot() {
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
-            {-> if (robotContainer.xbox.leftBumperButton) 90.0 else if (robotContainer.xbox.rightBumperButton) -15.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis else 0.0 }
         ))
+        CommandScheduler.getInstance().setDefaultCommand(robotContainer.outtake, robotContainer.outtake.outtakeDefaultCommand(
+        {-> if (robotContainer.xbox2.rightBumperButton) 90.0 else 0.0 }
+        ))
+        CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand
+        {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis else 0.0 }
+        )
     }
 
     override fun teleopPeriodic() {
-        robotContainer.intakeMotor!!.set(robotContainer.xbox.leftTriggerAxis)
     }
 
     override fun testInit() {
