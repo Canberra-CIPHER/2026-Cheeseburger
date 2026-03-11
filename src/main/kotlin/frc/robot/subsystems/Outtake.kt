@@ -8,7 +8,7 @@ import frc.robot.subsystems.TurretSubsystem.ShootingState
 import frc.robot.subsystems.TurretSubsystem.TurretState
 import java.util.function.DoubleSupplier
 
-class Outtake(motor1: MotorController, motor2: MotorController): SubsystemBase() {
+class Outtake(val motor1: MotorController, val motor2: MotorController): SubsystemBase() {
     sealed class OuttakeState {
         class EStop() : OuttakeState()
         class Outtaking(val voltage: Double) : OuttakeState()
@@ -31,13 +31,15 @@ class Outtake(motor1: MotorController, motor2: MotorController): SubsystemBase()
         when(val state = this.state) {
             is OuttakeState.EStop -> voltage = (0.0)
             is OuttakeState.Outtaking -> {
-                var output = 10.0
-                voltage = output
+                voltage = state.voltage
             }
 
             is OuttakeState.Init -> {
             }
         }
+
+        motor1.setVoltage(voltage)
+        motor2.setVoltage(voltage)
     }
 
     override fun periodic() {

@@ -15,9 +15,14 @@ import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
 import edu.wpi.first.math.filter.LinearFilter
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.math.geometry.Transform3d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Translation3d
+import edu.wpi.first.math.interpolation.InterpolatingTreeMap
+import edu.wpi.first.math.interpolation.Interpolator
+import edu.wpi.first.math.interpolation.InverseInterpolator
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import edu.wpi.first.units.Units
 import edu.wpi.first.wpilibj.AddressableLED
@@ -30,6 +35,8 @@ import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import edu.wpi.first.wpilibj2.command.button.JoystickButton
+import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.robot.sensorfusion.CRTFusion
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
@@ -54,8 +61,8 @@ class RobotContainer {
 //    val intakeMotor = SparkMax(30, SparkLowLevel.MotorType.kBrushless)
 //    val intakeMotor = ThriftyNova(30)
     var intakeMotor = ThriftyNova(30)
-    var outtakeMotor1 = SparkMax(40, SparkLowLevel.MotorType.kBrushless)
-    var outtakeMotor2 = SparkMax(41, SparkLowLevel.MotorType.kBrushless)
+    var outtakeMotor1 = SparkMax(15, SparkLowLevel.MotorType.kBrushless)
+    var outtakeMotor2 = ThriftyNova(16)
 
     var intake: Intake = Intake(intakeMotor)
     var outtake: Outtake = Outtake(outtakeMotor1, outtakeMotor2)
@@ -97,7 +104,7 @@ class RobotContainer {
         turretSpinMotor.configurator.apply(encoderConfig)
     }
 
-    val turretSpinMotorWrapped = WrappedTalonFX(turretSpinMotor, 3.0 * 5.0 * (76.0 / 12.0))
+    val turretSpinMotorWrapped = WrappedTalonFX(turretSpinMotor, 3.0 * 5.0 * (76.0 / 16.0))
 
     val turretShootMotor = TalonFX(21)
     val turretShootMotor2 = TalonFX(22)
@@ -147,7 +154,16 @@ class RobotContainer {
 
     val turretFusionFilter = LinearFilter.movingAverage(10)
 
-    val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretShootMotor2Wrapped, turretSpinMotorWrapped, turretShootMotorWrapped)
+    val turretInterpolatorMap = InterpolatingTreeMap(InverseInterpolator.forDouble(), Interpolator.forDouble())
+
+    init {
+        /* Demo */
+        turretInterpolatorMap.put(/* velocity */ 60.0, /* distance */ 0.5)
+        turretInterpolatorMap.put(/* velocity */ 70.0, /* distance */ 2.0)
+        turretInterpolatorMap.put(/* velocity */ 80.0, /* distance */ 4.0)
+    }
+
+    val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretShootMotor2Wrapped, turretSpinMotorWrapped, turretShootMotorWrapped, turretInterpolatorMap)
 
     val turretPID = ProfiledPIDController(0.8, 0.0, 0.0, TrapezoidProfile.Constraints(360.0, 720.0))
     val shootingPID = ProfiledPIDController(12.0 / 100.0, 0.0, 0.0, TrapezoidProfile.Constraints(100.0, 720.0))
@@ -155,7 +171,11 @@ class RobotContainer {
     val shootingFeedforward = SimpleMotorFeedforward(0.0, 12.0 / 100.0)
 
     val turret = TurretSubsystem(turretIO, turretPID, shootingPID, shootingFeedforward)
-//    val controller = CommandXboxController(Constants.OperatorConstants.DRIVER_CONTROLLER_PORT)
+
+    val turretTrackTrigger1 = JoystickButton(xbox2, XboxController.Button.kA.value)
+    val turretTrackTrigger2 = JoystickButton(xbox2, XboxController.Button.kB.value)
+    val turretShootTrigger1 = JoystickButton(xbox2, XboxController.Button.kX.value)
+    val turretShootTrigger2 = JoystickButton(xbox2, XboxController.Button.kY.value)
 
     private fun configureBindings() {
         val angles = listOf(0, 45, 90, 135, 180, 225, 270, 315)
@@ -166,9 +186,14 @@ class RobotContainer {
             }
         }
 
-        if (xbox2.aButton or xbox2.bButton or xbox2.xButton or xbox2.yButton) {
+        if (xbox2.aButton or xbox2.bButton) {
             CommandScheduler.getInstance().schedule(turret.trackTargetCommand())
         }
+        turretTrackTrigger1.whileTrue(turret.trackTargetCommand())
+        turretTrackTrigger2.whileTrue(turret.trackTargetCommand())
+
+        turretShootTrigger1.whileTrue(turret.shootForTargetCommand())
+        turretShootTrigger2.whileTrue(turret.shootForTargetCommand())
     }
 
     val ledStrip = AddressableLED(8)
@@ -176,6 +201,7 @@ class RobotContainer {
     val lights = Lights(ledStrip, 240, ledStripBuffer)
 
     val camera = PhotonCamera("realsense")
+    val cameraOffset = Pose2d(Translation2d(0.24, -0.24), Rotation2d.fromDegrees(180.0))
 
     fun addVisionReading(pose: Pose2d) {
         swerveDrive.addVisionMeasurement(pose, Timer.getFPGATimestamp())

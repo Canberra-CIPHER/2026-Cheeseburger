@@ -77,6 +77,13 @@ class TurretSubsystem(
         this.shootState = ShootingState.Shooting(velocity)
     }
 
+    fun runTurretTrackSingle() {
+        val velocityRequired = io.treeMap.get(distanceToTarget)
+
+        this.shootState = ShootingState.Shooting(velocityRequired)
+        this.state = TurretState.HoldingAngle(angleToTarget)
+    }
+
     fun controlPeriodic() {
         var currentAngle = getCurrentAngle()
         var currentVelocity = getCurrentVelocity()
@@ -85,7 +92,18 @@ class TurretSubsystem(
         when(val state = this.state) {
             is TurretState.EStop -> voltage = (0.0)
             is TurretState.HoldingAngle -> {
-                var output = pid1.calculate(currentAngle, state.angle)
+                var limitedAngle = state.angle
+                if (limitedAngle > 180.0) {
+                    limitedAngle = 180.0 - limitedAngle
+                }
+
+                if (limitedAngle > 90.0) {
+                    limitedAngle = 90.0
+                } else if (limitedAngle < -90.0) {
+                    limitedAngle = -90.0
+                }
+
+                val output = pid1.calculate(currentAngle, limitedAngle)
                 voltage = output
             }
             is TurretState.Init -> {
@@ -137,6 +155,16 @@ class TurretSubsystem(
             { -> Unit },
             { -> runTurret(speed.asDouble) },
             { _: Boolean -> runTurret(0.0)},
+            { -> false },
+            this
+        )
+    }
+
+    fun shootForTargetCommand(): Command {
+        return FunctionalCommand(
+            { -> Unit },
+            { -> runTurretTrackSingle() },
+            {_: Boolean -> runTurret(0.0) },
             { -> false },
             this
         )
