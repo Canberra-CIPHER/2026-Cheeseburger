@@ -27,6 +27,10 @@ class Robot : TimedRobot() {
     val turretFusionPublisher = NetworkTableInstance.getDefault().getTopic("turret/fusion").genericPublish("double")
     val turretEncoderOnePublisher = NetworkTableInstance.getDefault().getTopic("turret/encoder1").genericPublish("double")
     val turretEncoderTwoPublisher = NetworkTableInstance.getDefault().getTopic("turret/encoder2").genericPublish("double")
+
+    val turretDistance = NetworkTableInstance.getDefault().getTopic("turret/distanceToTarget").genericPublish("double")
+    val turretAngle = NetworkTableInstance.getDefault().getTopic("turret/angleToTarget").genericPublish("double")
+
     var movingAverageGuess = 0.0
 
     var lastSeenHubID: Int? = null
@@ -57,7 +61,7 @@ class Robot : TimedRobot() {
         turretEncoderTwoPublisher.setDouble(robotContainer.turretEncoder2.getPosition())
 
         val result = robotContainer.camera.allUnreadResults
-        if (result.isNotEmpty()) {
+        if (result.isNotEmpty() && result.last().multitagResult.isPresent) {
             var last = result.last()
 
             var poseVar = last.multitagResult.get().estimatedPose.best
@@ -79,12 +83,15 @@ class Robot : TimedRobot() {
         lastSeenHubID?.let {
             var targetPose = robotContainer.whereTagsAre.getTagPose(it).get()
             var targetPose2D = Pose2d(Translation2d(targetPose.translation.x, targetPose.translation.y), Rotation2d(targetPose.rotation.x, targetPose.rotation.y))
-            var relativePosition = targetPose2D.minus(robotContainer.swerveDrive.pose)
+            val relativePosition = targetPose2D.relativeTo(robotContainer.swerveDrive.pose).relativeTo(robotContainer.cameraOffset).rotateBy(Rotation2d.fromDegrees(90.0))
             var relativeAngle = relativePosition.rotation.degrees
             var relativeDistance = relativePosition.translation.norm
 
-            robotContainer.turret.angleToTarget = relativeAngle
+            robotContainer.turret.angleToTarget = -relativeAngle
             robotContainer.turret.distanceToTarget = relativeDistance
+
+            turretDistance.setDouble(relativeDistance)
+            turretAngle.setDouble(relativeAngle)
         }
     }
 
@@ -146,14 +153,14 @@ class Robot : TimedRobot() {
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
-            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis else if (robotContainer.xbox2.rightTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.rightTriggerAxis else 0.0 }
+            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis * 100.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.outtake, robotContainer.outtake.outtakeDefaultCommand(
-        {-> if (robotContainer.xbox2.rightBumperButton) 90.0 else if (robotContainer.xbox2.rightBumperButton && robotContainer.xbox2.leftBumperButton) -90.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightBumperButton) 10.0 else 0.0 }
         ))
-        CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand
-        {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis else 0.0 }
-        )
+        CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand(
+            {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis * 12.0 else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis * 12.0 else 0.0 }
+        ))
     }
 
     override fun teleopPeriodic() {
