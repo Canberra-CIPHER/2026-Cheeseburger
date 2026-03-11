@@ -146,10 +146,10 @@ class Robot : TimedRobot() {
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
-            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis else 0.0 }
+            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis else if (robotContainer.xbox2.rightTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.rightTriggerAxis else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.outtake, robotContainer.outtake.outtakeDefaultCommand(
-        {-> if (robotContainer.xbox2.rightBumperButton) 90.0 else 0.0 }
+        {-> if (robotContainer.xbox2.rightBumperButton) 90.0 else if (robotContainer.xbox2.rightBumperButton && robotContainer.xbox2.leftBumperButton) -90.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand
         {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis else 0.0 }
