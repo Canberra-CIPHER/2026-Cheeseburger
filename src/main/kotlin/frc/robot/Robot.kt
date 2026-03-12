@@ -7,21 +7,25 @@ package frc.robot
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
-import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.networktables.NetworkTableInstance
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
 import frc.robot.subsystems.Outtake
+import java.sql.Driver
 import org.dyn4j.geometry.Vector2
 import org.dyn4j.geometry.Vector3
+import edu.wpi.first.math.Matrix
+import edu.wpi.first.math.VecBuilder
 import kotlin.invoke
+import edu.wpi.first.hal.AllianceStationID
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.sign
 
@@ -49,8 +53,6 @@ class Robot : TimedRobot() {
         addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
         addPeriodic({ -> robotContainer.intake.controlPeriodic()}, 0.01)
         addPeriodic({ -> robotContainer.outtake.controlPeriodic()}, 0.01)
-
-        robotContainer.swerveDriveIO.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.5, 0.5, 0.5))
     }
 
     override fun robotPeriodic() {
