@@ -22,12 +22,9 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
 import frc.robot.subsystems.Outtake
-<<<<<<< HEAD
 import org.dyn4j.geometry.Vector2
 import org.dyn4j.geometry.Vector3
-=======
 import java.sql.Driver
->>>>>>> f1549f1a791979bcfad07973104187014474c38f
 import kotlin.invoke
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.sign
