@@ -7,6 +7,9 @@ package frc.robot
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
+import edu.wpi.first.math.Matrix
+import edu.wpi.first.math.VecBuilder
+import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
@@ -19,13 +22,13 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
 import frc.robot.subsystems.Outtake
-import java.sql.Driver
+<<<<<<< HEAD
 import org.dyn4j.geometry.Vector2
 import org.dyn4j.geometry.Vector3
-import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.VecBuilder
+=======
+import java.sql.Driver
+>>>>>>> f1549f1a791979bcfad07973104187014474c38f
 import kotlin.invoke
-import edu.wpi.first.hal.AllianceStationID
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.sign
 
@@ -53,6 +56,8 @@ class Robot : TimedRobot() {
         addPeriodic({ -> robotContainer.turret.controlPeriodic()}, 0.01)
         addPeriodic({ -> robotContainer.intake.controlPeriodic()}, 0.01)
         addPeriodic({ -> robotContainer.outtake.controlPeriodic()}, 0.01)
+
+        robotContainer.swerveDriveIO.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.5, 0.5, 0.5))
     }
 
     override fun robotPeriodic() {
@@ -126,6 +131,22 @@ class Robot : TimedRobot() {
         }
     }
 
+    fun getChassisDemand(): Transform2d{
+        var translate = Translation2d(squareInputs(robotContainer.xbox.leftX) * getThrottleMultiplier(), squareInputs(robotContainer.xbox.leftY) * getThrottleMultiplier())
+        var angle = Rotation2d(robotContainer.xbox.rightX, robotContainer.xbox.rightY)
+
+
+        val alliance = DriverStation.getAlliance()
+        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
+
+        } else {
+            angle = angle.rotateBy(Rotation2d.fromDegrees(180.0))
+            translate = translate.rotateBy(Rotation2d.fromDegrees(180.0))
+        }
+
+        return Transform2d(translate, angle)
+    }
+
     override fun teleopInit() {
         // autonomousCommand?.cancel()
 
@@ -152,12 +173,15 @@ class Robot : TimedRobot() {
 
             Pair(snapX, snapY)
         }
+
+        Transform2d()
+
 //        robotContainer.turretMotorWrapped.setPosition(robotContainer.turretFusionEncoder.getPosition() % 1.0)
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.swerveDriveSystem, robotContainer.swerveDriveSystem.driveDefaultCommand(
-            { -> squareInputs(-robotContainer.xbox.leftY) * getThrottleMultiplier() },
-            { -> squareInputs(-robotContainer.xbox.leftX) * getThrottleMultiplier() },
-            { -> snapFun.invoke().first ?: -robotContainer.xbox.rightX },
-            { -> snapFun.invoke().second ?: -robotContainer.xbox.rightY },
+            { -> getChassisDemand().x },
+            { -> getChassisDemand().y },
+            { -> snapFun.invoke().first ?: getChassisDemand().rotation.cos },
+            { -> snapFun.invoke().second ?: getChassisDemand().rotation.sin },
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
