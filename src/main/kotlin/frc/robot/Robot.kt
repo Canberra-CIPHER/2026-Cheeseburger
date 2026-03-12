@@ -19,6 +19,8 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Lights
 import frc.robot.subsystems.Outtake
@@ -110,7 +112,12 @@ class Robot : TimedRobot() {
     override fun disabledPeriodic() {}
 
     override fun autonomousInit() {
-    //    robotContainer.turretMotorWrapped.setPosition(movingAverageGuess)
+        val autoRunToShoot = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.outtake.outtakeDefaultCommand { 80.0 }, robotContainer.intake.intakeDefaultCommand { 80.0 })
+        val autoCommandGroup = SequentialCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.turret.trackTargetCommand(), autoRunToShoot)
+
+        CommandScheduler.getInstance().schedule(autoCommandGroup)
+        CommandScheduler.getInstance().run()
+        //    robotContainer.turretMotorWrapped.setPosition(movingAverageGuess)
     }
 
     override fun autonomousPeriodic() {}
