@@ -181,7 +181,7 @@ class RobotContainer {
         val angles = listOf(0, 45, 90, 135, 180, 225, 270, 315)
 
         for (angle in angles) {
-            xbox.pov(angle, loop).ifHigh {
+            xbox2.pov(angle, loop).ifHigh {
                 CommandScheduler.getInstance().schedule(turret.goToAngleCommand(angle.toDouble(), false))
             }
         }

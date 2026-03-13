@@ -190,13 +190,13 @@ class Robot : TimedRobot() {
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
-            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis * 100.0 else 0.0 }
+            {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis * 100.0 else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis * 100.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.outtake, robotContainer.outtake.outtakeDefaultCommand(
-            {-> if (robotContainer.xbox2.rightBumperButton) 10.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightBumperButton) 10.0 else if (robotContainer.xbox2.rightBumperButton && robotContainer.xbox2.leftBumperButton) -10.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand(
-            {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis * 12.0 else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis * 12.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis * 12.0 else if (robotContainer.xbox2.rightTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.rightTriggerAxis * 12.0 else 0.0 }
         ))
     }
 
