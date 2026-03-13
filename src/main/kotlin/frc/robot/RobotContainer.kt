@@ -158,9 +158,9 @@ class RobotContainer {
 
     init {
         /* Demo */
-        turretInterpolatorMap.put(/* velocity */ 60.0, /* distance */ 0.5)
-        turretInterpolatorMap.put(/* velocity */ 70.0, /* distance */ 2.0)
-        turretInterpolatorMap.put(/* velocity */ 80.0, /* distance */ 4.0)
+        turretInterpolatorMap.put(/* velocity */ 65.0, /* distance */ 3.02)
+        turretInterpolatorMap.put(/* velocity */ 60.0, /* distance */ 2.34)
+        turretInterpolatorMap.put(/* velocity */ 52.0, /* distance */ 1.29)
     }
 
     val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretShootMotor2Wrapped, turretSpinMotorWrapped, turretShootMotorWrapped, turretInterpolatorMap)

@@ -56,7 +56,7 @@ class Robot : TimedRobot() {
         addPeriodic({ -> robotContainer.intake.controlPeriodic()}, 0.01)
         addPeriodic({ -> robotContainer.outtake.controlPeriodic()}, 0.01)
 
-        robotContainer.swerveDriveIO.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.5, 0.5, 0.5))
+        robotContainer.swerveDriveIO.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.5, 0.5, 10.0))
     }
 
     override fun robotPeriodic() {
@@ -137,16 +137,17 @@ class Robot : TimedRobot() {
     }
 
     fun getChassisDemand(): Transform2d{
-        var translate = Translation2d(squareInputs(robotContainer.xbox.leftX) * getThrottleMultiplier(), squareInputs(robotContainer.xbox.leftY) * getThrottleMultiplier())
+        var translate = Translation2d(squareInputs(robotContainer.xbox.leftY) * getThrottleMultiplier(), squareInputs(robotContainer.xbox.leftX) * getThrottleMultiplier())
         var angle = Rotation2d(robotContainer.xbox.rightX, robotContainer.xbox.rightY)
 
 
         val alliance = DriverStation.getAlliance()
         if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
-
+            angle = angle.rotateBy(Rotation2d.fromDegrees(-90.0))
+            translate = translate.rotateBy(Rotation2d.fromDegrees(-90.0))
         } else {
-            angle = angle.rotateBy(Rotation2d.fromDegrees(180.0))
-            translate = translate.rotateBy(Rotation2d.fromDegrees(180.0))
+            angle = angle.rotateBy(Rotation2d.fromDegrees(90.0))
+            translate = translate.rotateBy(Rotation2d.fromDegrees(90.0))
         }
 
         return Transform2d(translate, angle)
@@ -190,13 +191,13 @@ class Robot : TimedRobot() {
         ))
 
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.turret, robotContainer.turret.shootDefaultCommand(
-            {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis * 100.0 else if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis * 100.0 else 0.0 }
+            {-> if (robotContainer.xbox2.leftTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.leftTriggerAxis * 52.0 else if (robotContainer.xbox2.leftTriggerAxis > 0.05) robotContainer.xbox2.leftTriggerAxis * 52.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.outtake, robotContainer.outtake.outtakeDefaultCommand(
-            {-> if (robotContainer.xbox2.rightBumperButton) 10.0 else if (robotContainer.xbox2.rightBumperButton && robotContainer.xbox2.leftBumperButton) -10.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightBumperButton && robotContainer.xbox2.leftBumperButton) -10.0 else if (robotContainer.xbox2.rightBumperButton) 10.0 else 0.0 }
         ))
         CommandScheduler.getInstance().setDefaultCommand(robotContainer.intake, robotContainer.intake.intakeDefaultCommand(
-            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis * 12.0 else if (robotContainer.xbox2.rightTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.rightTriggerAxis * 12.0 else 0.0 }
+            {-> if (robotContainer.xbox2.rightTriggerAxis > 0.05 && robotContainer.xbox2.leftBumperButton) -robotContainer.xbox2.rightTriggerAxis * 12.0 else if (robotContainer.xbox2.rightTriggerAxis > 0.05) robotContainer.xbox2.rightTriggerAxis * 12.0 else 0.0 }
         ))
     }
 
