@@ -112,8 +112,9 @@ class Robot : TimedRobot() {
     override fun disabledPeriodic() {}
 
     override fun autonomousInit() {
-        val autoRunToShoot = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.outtake.outtakeDefaultCommand { 80.0 }, robotContainer.intake.intakeDefaultCommand { 80.0 })
-        val autoCommandGroup = SequentialCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.turret.trackTargetCommand(), autoRunToShoot)
+        val autoRunToShoot = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.outtake.outtakeDefaultCommand { 80.0 }, robotContainer.intake.intakeDefaultCommand { 80.0 }).withTimeout(5.0)
+        val autoRunAndSnap = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }.withTimeout(3.0), robotContainer.turret.trackTargetCommand().withTimeout(5.0))
+        val autoCommandGroup = SequentialCommandGroup(autoRunAndSnap, autoRunToShoot)
 
         CommandScheduler.getInstance().schedule(autoCommandGroup)
         CommandScheduler.getInstance().run()
@@ -152,7 +153,7 @@ class Robot : TimedRobot() {
     }
 
     override fun teleopInit() {
-        // autonomousCommand?.cancel()
+        CommandScheduler.getInstance().cancelAll()
 
         val snapFun = { ->
             var snapX: Double? = null
