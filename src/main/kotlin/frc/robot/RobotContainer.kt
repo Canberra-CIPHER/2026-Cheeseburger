@@ -157,10 +157,9 @@ class RobotContainer {
     val turretInterpolatorMap = InterpolatingTreeMap(InverseInterpolator.forDouble(), Interpolator.forDouble())
 
     init {
-        /* Demo */
-        turretInterpolatorMap.put(/* velocity */ 65.0, /* distance */ 3.02)
-        turretInterpolatorMap.put(/* velocity */ 60.0, /* distance */ 2.34)
-        turretInterpolatorMap.put(/* velocity */ 52.0, /* distance */ 1.29)
+        turretInterpolatorMap.put(/* percent modifier */ 65.0, /* distance to target */ 3.02)
+        turretInterpolatorMap.put(60.0, 2.34)
+        turretInterpolatorMap.put(52.0, 1.29)
     }
 
     val turretIO = TurretIO(turretSpinMotorWrapped, turretShootMotorWrapped, turretShootMotor2Wrapped, turretSpinMotorWrapped, turretShootMotorWrapped, turretInterpolatorMap)
