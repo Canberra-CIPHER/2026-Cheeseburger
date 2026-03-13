@@ -157,7 +157,7 @@ class RobotContainer {
     val turretInterpolatorMap = InterpolatingTreeMap(InverseInterpolator.forDouble(), Interpolator.forDouble())
 
     init {
-        turretInterpolatorMap.put(/* percent modifier */ 65.0, /* distance to target */ 3.02)
+        turretInterpolatorMap.put(/* rpm */ 65.0, /* distance to target */ 3.02)
         turretInterpolatorMap.put(60.0, 2.34)
         turretInterpolatorMap.put(52.0, 1.29)
     }

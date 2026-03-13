@@ -60,8 +60,28 @@ class Robot : TimedRobot() {
         robotContainer.swerveDriveIO.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.5, 0.5, 999999.999999))
     }
 
+    fun calibrateAlliance() {
+        val alliance = DriverStation.getAlliance()
+        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
+            robotContainer.whereTagsAre.setOrigin(AprilTagFieldLayout.OriginPosition.kBlueAllianceWallRightSide)
+        } else {
+            robotContainer.whereTagsAre.setOrigin(AprilTagFieldLayout.OriginPosition.kRedAllianceWallRightSide)
+        }
+
+//        TODO: Temporary - check coordinate system
+//        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
+//            robotContainer.swerveDriveSystem.io.swerveDrive.setGyroOffset(Rotation3d(0.0, 0.0, -90.0))
+//        }
+//        else {
+//            robotContainer.swerveDriveSystem.io.swerveDrive.setGyroOffset(Rotation3d(0.0, 0.0, 90.0))
+//        }
+    }
+
     override fun robotPeriodic() {
         CommandScheduler.getInstance().run()
+
+        calibrateAlliance()
+
         robotContainer.loop.poll()
         robotContainer.turret.periodic()
         robotContainer.swerveDriveSystem.periodic()
@@ -96,7 +116,7 @@ class Robot : TimedRobot() {
         lastSeenHubID?.let {
             var targetPose = robotContainer.whereTagsAre.getTagPose(it).get()
             var targetPose2D = Pose2d(Translation2d(targetPose.translation.x, targetPose.translation.y), Rotation2d(targetPose.rotation.x, targetPose.rotation.y))
-            val relativePosition = targetPose2D.relativeTo(robotContainer.swerveDrive.pose).relativeTo(robotContainer.cameraOffset).rotateBy(Rotation2d.fromDegrees(90.0))
+            val relativePosition = targetPose2D.relativeTo(robotContainer.swerveDrive.pose).relativeTo(robotContainer.cameraOffset).rotateBy(Rotation2d.fromDegrees(0.0))
             var relativeAngle = relativePosition.rotation.degrees
             var relativeDistance = relativePosition.translation.norm
 
@@ -113,20 +133,17 @@ class Robot : TimedRobot() {
     override fun disabledPeriodic() {}
 
     override fun autonomousInit() {
-        val alliance = DriverStation.getAlliance()
-        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
-            robotContainer.swerveDriveSystem.io.swerveDrive.setGyroOffset(Rotation3d(0.0, 0.0, -90.0))
-        }
-        else {
-            robotContainer.swerveDriveSystem.io.swerveDrive.setGyroOffset(Rotation3d(0.0, 0.0, 90.0))
-        }
+        val autoRunAndSnap = robotContainer.turret.shootForTargetCommand()
+        val autoRunToShoot = ParallelCommandGroup(
+            robotContainer.turret.shootForTargetCommand(),
+            robotContainer.outtake.outtakeDefaultCommand { 80.0 },
+            robotContainer.intake.intakeDefaultCommand { 80.0 }
+        ).withTimeout(5.0)
 
-        val autoRunToShoot = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }, robotContainer.outtake.outtakeDefaultCommand { 80.0 }, robotContainer.intake.intakeDefaultCommand { 80.0 }).withTimeout(5.0)
-        val autoRunAndSnap = ParallelCommandGroup(robotContainer.turret.shootDefaultCommand { 80.0 }.withTimeout(3.0), robotContainer.turret.trackTargetCommand().withTimeout(5.0))
         val autoCommandGroup = SequentialCommandGroup(autoRunAndSnap, autoRunToShoot)
 
         CommandScheduler.getInstance().schedule(autoCommandGroup)
-        CommandScheduler.getInstance().run()
+//        CommandScheduler.getInstance().run()
         //    robotContainer.turretMotorWrapped.setPosition(movingAverageGuess)
     }
 
@@ -138,27 +155,26 @@ class Robot : TimedRobot() {
 
     fun getThrottleMultiplier(): Double {
         if (robotContainer.xbox.rightBumperButton) {
-            return 0.35
-        }
-        else {
             return 0.5
+        } else {
+            return 1.0
         }
     }
 
     fun getChassisDemand(): Transform2d{
-        var translate = Translation2d(squareInputs(-robotContainer.xbox.leftY) * getThrottleMultiplier(), squareInputs(robotContainer.xbox.leftX) * getThrottleMultiplier())
-        var angle = Rotation2d(robotContainer.xbox.rightX, robotContainer.xbox.rightY)
+        var translate = Translation2d(squareInputs(-robotContainer.xbox.leftY) * getThrottleMultiplier(), squareInputs(-robotContainer.xbox.leftX) * getThrottleMultiplier())
+        var angle = Rotation2d(-robotContainer.xbox.rightX, -robotContainer.xbox.rightY)
 
 
-        val alliance = DriverStation.getAlliance()
-        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
-            angle = angle.rotateBy(Rotation2d.fromDegrees(-90.0))
-            translate = translate.rotateBy(Rotation2d.fromDegrees(-90.0))
-        }
-        else {
-            angle = angle.rotateBy(Rotation2d.fromDegrees(90.0))
-            translate = translate.rotateBy(Rotation2d.fromDegrees(90.0))
-        }
+//        val alliance = DriverStation.getAlliance()
+//        if (alliance.isPresent && alliance.get() == DriverStation.Alliance.Blue) {
+//            angle = angle.rotateBy(Rotation2d.fromDegrees(-90.0))
+//            translate = translate.rotateBy(Rotation2d.fromDegrees(-90.0))
+//        }
+//        else {
+//            angle = angle.rotateBy(Rotation2d.fromDegrees(90.0))
+//            translate = translate.rotateBy(Rotation2d.fromDegrees(90.0))
+//        }
 
         return Transform2d(translate, angle)
     }
