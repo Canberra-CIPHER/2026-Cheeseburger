@@ -133,14 +133,12 @@ class Robot : TimedRobot() {
     override fun disabledPeriodic() {}
 
     override fun autonomousInit() {
+        val currentPose = robotContainer.swerveDriveSystem.io.swerveDrive.pose
+        val turnToTurret = robotContainer.swerveDriveSystem.driveToPosition(Pose2d(currentPose.translation, Rotation2d.fromDegrees(-135.0))).withTimeout(1.5)
         val autoRunAndSnap = robotContainer.turret.shootForTargetCommand()
-        val autoRunToShoot = ParallelCommandGroup(
-            robotContainer.turret.shootForTargetCommand(),
-            robotContainer.outtake.outtakeDefaultCommand { 80.0 },
-            robotContainer.intake.intakeDefaultCommand { 80.0 }
-        ).withTimeout(5.0)
+        val autoRunToShoot = ParallelCommandGroup(robotContainer.turret.shootForTargetCommand(), robotContainer.outtake.outtakeDefaultCommand { 80.0 }, robotContainer.intake.intakeDefaultCommand { 80.0 }).withTimeout(5.0)
 
-        val autoCommandGroup = SequentialCommandGroup(autoRunAndSnap, autoRunToShoot)
+        val autoCommandGroup = SequentialCommandGroup( turnToTurret, autoRunAndSnap, autoRunToShoot)
 
         CommandScheduler.getInstance().schedule(autoCommandGroup)
 //        CommandScheduler.getInstance().run()
