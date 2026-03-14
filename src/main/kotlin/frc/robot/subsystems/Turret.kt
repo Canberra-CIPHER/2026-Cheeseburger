@@ -92,7 +92,7 @@ class TurretSubsystem(
         when(val state = this.state) {
             is TurretState.EStop -> voltage = (0.0)
             is TurretState.HoldingAngle -> {
-                var limitedAngle = state.angle
+                /*var limitedAngle = state.angle
                 if (limitedAngle > 180.0) {
                     limitedAngle = 180.0 - limitedAngle
                 }
@@ -104,14 +104,14 @@ class TurretSubsystem(
                 }
 
                 val output = pid1.calculate(currentAngle, limitedAngle)
-                voltage = output
+                voltage = output*/
             }
             is TurretState.Init -> {
 
             }
         }
 
-        io.voltageControllerSpin.setVoltage(voltage)
+        //  io.voltageControllerSpin.setVoltage(voltage)
 
         when(val shootState = this.shootState) {
             is ShootingState.EStop -> voltage = (0.0)

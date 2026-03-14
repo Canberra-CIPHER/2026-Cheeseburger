@@ -2,6 +2,7 @@ package frc.robot.subsystems
 
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -142,6 +143,18 @@ class SwerveDrive(
         return FunctionalCommand(
             { -> goToPosition(pose) },
             { -> Unit },
+            { _: Boolean -> io.swerveDrive.drive(ChassisSpeeds(0.0, 0.0, 0.0)) },
+            { -> isStable() },
+            this
+        )
+    }
+
+    fun driveToAngle(
+        pose: Pose2d
+    ): Command {
+        return FunctionalCommand(
+            { -> Unit },
+            { -> manualControl(0.0, 0.0, pose.rotation.cos, pose.rotation.sin) },
             { _: Boolean -> io.swerveDrive.drive(ChassisSpeeds(0.0, 0.0, 0.0)) },
             { -> isStable() },
             this
